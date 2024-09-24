@@ -5,12 +5,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.stream.Stream;
 
 public class Packer {
 	public static void main(String[] args) {
-		System.out.println(Arrays.toString(args));
 		Path output = Paths.get(args[0]);
 		Path root = Paths.get(args[1]);
 
@@ -26,7 +24,6 @@ public class Packer {
 
 				out.writeInt(name.length);
 				out.writeInt(data.length);
-				System.out.println("Writing: " + name.length + " " + data.length + " for " + new String(name));
 
 				out.write(name);
 				out.write(data);

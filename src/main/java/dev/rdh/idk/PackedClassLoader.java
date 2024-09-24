@@ -5,7 +5,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class CustomClassLoader extends ClassLoader {
+public class PackedClassLoader extends ClassLoader {
 	private final ConcurrentHashMap<String, Long> offsets = new ConcurrentHashMap<>();
 	private final String bundleName;
 
@@ -13,7 +13,7 @@ public class CustomClassLoader extends ClassLoader {
 		registerAsParallelCapable();
 	}
 
-	public CustomClassLoader(ClassLoader parent, String bundleName) {
+	public PackedClassLoader(ClassLoader parent, String bundleName) {
 		super(parent);
 		this.bundleName = bundleName;
 
@@ -88,13 +88,9 @@ public class CustomClassLoader extends ClassLoader {
 	}
 
 	public static void main(String[] args) {
-		CustomClassLoader loader = new CustomClassLoader(CustomClassLoader.class.getClassLoader(), "bundle.pack");
-		try {
-			Class<?> clazz = loader.loadClass("dev.rdh.idk.TestMain");
-			clazz.getMethod("main", String[].class).invoke(null, (Object) new String[0]);
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to load class", e);
-		}
+		PackedClassLoader loader = new PackedClassLoader(PackedClassLoader.class.getClassLoader(), "bundle.pack");
+		loader.loadClass("dev.rdh.idk.packed.TestMain")
+				.getMethod("main", String[].class).invoke(null, (Object) null);
 	}
 }
 

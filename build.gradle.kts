@@ -30,6 +30,10 @@ tasks.compileJava {
     options.release = 8
 }
 
+tasks.jar {
+    exclude("dev/rdh/idk/packed/**")
+}
+
 configurations.all {
     resolutionStrategy.force("org.ow2.asm:asm:$asmVersion")
     resolutionStrategy.force("org.ow2.asm:asm-tree:$asmVersion")
@@ -38,13 +42,16 @@ configurations.all {
 tasks.register<JavaExec>("runPacker") {
     mainClass = "dev.rdh.idk.Packer"
     classpath = sourceSets.main.get().runtimeClasspath
+
+    val base = file("build/classes/java/main")
+
     args("src/main/resources/bundle.pack",
-        "build/classes/java/main",
-        "build/classes/java/main/dev/rdh/idk/TestMain.class",
-        "build/classes/java/main/dev/rdh/idk/TestMain\$InnerClass.class")
+        base.absolutePath,
+        *file("build/classes/java/main/dev/rdh/idk/packed/").listFiles()!!.map { it.absolutePath }.toTypedArray()
+    )
 }
 
 tasks.register<JavaExec>("runClassLoaderTest") {
-    mainClass = "dev.rdh.idk.CustomClassLoader"
+    mainClass = "dev.rdh.idk.PackedClassLoader"
     classpath = tasks.jar.get().outputs.files
 }
