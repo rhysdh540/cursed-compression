@@ -1,14 +1,13 @@
 package dev.rdh.idk;
 
 import java.io.DataInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CustomClassLoader extends ClassLoader {
-	private final Map<String, byte[]> index = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Long> offsets = new ConcurrentHashMap<>();
+	private final String bundleName;
 
 	static {
 		registerAsParallelCapable();
@@ -16,22 +15,61 @@ public class CustomClassLoader extends ClassLoader {
 
 	public CustomClassLoader(ClassLoader parent, String bundleName) {
 		super(parent);
+		this.bundleName = bundleName;
 
 		try (InputStream is = parent.getResourceAsStream(bundleName)) {
 			if (is == null) {
 				throw new IllegalArgumentException("Bundle not found: " + bundleName);
 			}
 
-			splitClassFiles(new DataInputStream(is));
-		} catch (IOException e) {
+			if(is.available() <= 0) {
+				throw new IllegalArgumentException("Bundle is empty: " + bundleName);
+			}
+
+			// populate offsets
+			DataInputStream input = new DataInputStream(is);
+			int currentPos = 0;
+			while(input.available() > 0) {
+				int nameLength = input.readInt();
+				int length = input.readInt();
+				currentPos += 8;
+
+				byte[] nameBytes = new byte[nameLength];
+				input.readFully(nameBytes);
+				String name = new String(nameBytes);
+				currentPos += nameLength;
+
+				offsets.put(name, (long) currentPos << 32 | length); // store position and length in a single long
+				currentPos += length;
+				input.skipBytes(length);
+			}
+		} catch (Exception e) {
 			throw new RuntimeException("Failed to load bundle: " + bundleName, e);
+		}
+	}
+
+	private byte[] getEntry(String name) {
+		Long posAndLength = offsets.get(name);
+		if (posAndLength == null) {
+			return null;
+		}
+
+		int pos = (int) (posAndLength >> 32);
+		int length = (int) (long) posAndLength;
+
+		try (InputStream is = getParent().getResourceAsStream(bundleName)) {
+			byte[] bytes = new byte[length];
+			is.skip(pos);
+			is.read(bytes);
+			return bytes;
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to load entry: " + name, e);
 		}
 	}
 
 	@Override
 	protected Class<?> findClass(String name) {
-		String path = name.replace('.', '/') + ".class";
-		byte[] bytes = index.get(path);
+		byte[] bytes = getEntry(name.replace('.', '/') + ".class");
 		if (bytes == null) {
 			throw new ClassNotFoundException(name);
 		}
@@ -41,7 +79,7 @@ public class CustomClassLoader extends ClassLoader {
 
 	@Override
 	protected URL findResource(String name) {
-		byte[] bytes = index.get(name);
+		byte[] bytes = getEntry(name);
 		if (bytes == null) {
 			return null;
 		}
@@ -49,16 +87,13 @@ public class CustomClassLoader extends ClassLoader {
 		return new URL(null, "bytes", new ByteArrayURLStreamHandler(bytes));
 	}
 
-	private void splitClassFiles(DataInputStream input) {
-		while(input.available() > 0) {
-			byte[] nameBytes = new byte[input.readInt()];
-			byte[] data = new byte[input.readInt()];
-
-			input.readFully(nameBytes);
-
-			input.readFully(data);
-
-			index.put(new String(nameBytes), data);
+	public static void main(String[] args) {
+		CustomClassLoader loader = new CustomClassLoader(CustomClassLoader.class.getClassLoader(), "bundle.pack");
+		try {
+			Class<?> clazz = loader.loadClass("dev.rdh.idk.TestMain");
+			clazz.getMethod("main", String[].class).invoke(null, (Object) new String[0]);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to load class", e);
 		}
 	}
 }

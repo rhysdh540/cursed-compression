@@ -35,8 +35,16 @@ configurations.all {
     resolutionStrategy.force("org.ow2.asm:asm-tree:$asmVersion")
 }
 
-tasks.register<JavaExec>("runUnpacker") {
-    mainClass = "dev.rdh.pack201.Unpacker"
+tasks.register<JavaExec>("runPacker") {
+    mainClass = "dev.rdh.idk.Packer"
     classpath = sourceSets.main.get().runtimeClasspath
-    args("output.pack", "output/**")
+    args("src/main/resources/bundle.pack",
+        "build/classes/java/main",
+        "build/classes/java/main/dev/rdh/idk/TestMain.class",
+        "build/classes/java/main/dev/rdh/idk/TestMain\$InnerClass.class")
+}
+
+tasks.register<JavaExec>("runClassLoaderTest") {
+    mainClass = "dev.rdh.idk.CustomClassLoader"
+    classpath = tasks.jar.get().outputs.files
 }
