@@ -1,4 +1,4 @@
-package dev.rdh.idk;
+package dev.rdh.pcl;
 
 import java.io.DataInputStream;
 import java.io.InputStream;
@@ -88,8 +88,8 @@ public class PackedClassLoader extends ClassLoader {
 	}
 
 	public static void main(String[] args) {
-		PackedClassLoader loader = new PackedClassLoader(PackedClassLoader.class.getClassLoader(), "bundle.pack");
-		loader.loadClass("dev.rdh.idk.packed.TestMain")
+		PackedClassLoader loader = new PackedClassLoader(PackedClassLoader.class.getClassLoader(), "bundle");
+		loader.loadClass("dev.rdh.pcl.packed.TestMain")
 				.getMethod("main", String[].class).invoke(null, (Object) null);
 	}
 }

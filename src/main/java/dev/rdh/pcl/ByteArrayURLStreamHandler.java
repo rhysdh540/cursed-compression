@@ -1,4 +1,4 @@
-package dev.rdh.idk;
+package dev.rdh.pcl;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;

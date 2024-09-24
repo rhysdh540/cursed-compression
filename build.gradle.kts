@@ -31,7 +31,15 @@ tasks.compileJava {
 }
 
 tasks.jar {
+    exclude("bundle")
+}
+
+val packedJar by tasks.registering(Jar::class) {
+    group = "build"
+    from(sourceSets.main.get().output)
     exclude("dev/rdh/idk/packed/**")
+
+    archiveClassifier.set("packed")
 }
 
 configurations.all {
@@ -40,18 +48,18 @@ configurations.all {
 }
 
 tasks.register<JavaExec>("runPacker") {
-    mainClass = "dev.rdh.idk.Packer"
+    mainClass = "dev.rdh.pcl.Packer"
     classpath = sourceSets.main.get().runtimeClasspath
 
     val base = file("build/classes/java/main")
 
-    args("src/main/resources/bundle.pack",
+    args("src/main/resources/bundle",
         base.absolutePath,
-        *file("build/classes/java/main/dev/rdh/idk/packed/").listFiles()!!.map { it.absolutePath }.toTypedArray()
+        *file("build/classes/java/main/dev/rdh/pcl/packed/").listFiles()!!.map { it.absolutePath }.toTypedArray()
     )
 }
 
 tasks.register<JavaExec>("runClassLoaderTest") {
-    mainClass = "dev.rdh.idk.PackedClassLoader"
-    classpath = tasks.jar.get().outputs.files
+    mainClass = "dev.rdh.pcl.PackedClassLoader"
+    classpath = packedJar.get().outputs.files
 }

@@ -1,4 +1,4 @@
-package dev.rdh.idk.packed;
+package dev.rdh.pcl.packed;
 
 public class TestMain {
 	public static void main(String[] args) {
